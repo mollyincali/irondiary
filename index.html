@@ -172,6 +172,7 @@
       <strong style="color:var(--text)" id="storage-count"></strong></p>
     </div>
     <button class="btn btn-outline" onclick="refreshData()" style="margin-bottom:8px">↻ Refresh from DynamoDB</button>
+    <button class="btn btn-muted btn-sm" onclick="seedHistorical()" style="width:100%;margin-bottom:8px">⬆ Upload All Historical Data</button>
     <button class="btn btn-muted btn-sm" onclick="testPost()" style="width:100%;margin-bottom:8px">🔧 Test POST to DynamoDB</button>
     <div id="debug-out" style="font-size:11px;color:var(--muted);margin-top:8px;word-break:break-all;line-height:1.6"></div>
   </div>
@@ -533,6 +534,32 @@ function showPage(name) {
     const el = document.getElementById('storage-count');
     if (el) el.textContent = count + ' entries in DynamoDB';
   }
+}
+
+async function seedHistorical() {
+  const out = document.getElementById('debug-out');
+  out.textContent = 'Starting upload...';
+  const batchSize = 25;
+  let sent = 0;
+  for (let i = 0; i < HISTORICAL_DATA.length; i += batchSize) {
+    const batch = HISTORICAL_DATA.slice(i, i + batchSize);
+    try {
+      const res = await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(batch)
+      });
+      const json = await res.json();
+      sent += json.saved || 0;
+      out.textContent = `Uploading... ${sent}/${HISTORICAL_DATA.length}`;
+    } catch(e) {
+      out.textContent = `Error at batch ${i}: ${e.message}`;
+      return;
+    }
+  }
+  out.textContent = `✓ Done! ${sent} entries uploaded to DynamoDB.`;
+  toast('Historical data uploaded!');
+  await refreshData();
 }
 
 async function testPost() {
