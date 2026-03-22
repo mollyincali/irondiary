@@ -227,19 +227,21 @@ async function fetchFromDynamo() {
     const res = await fetch(API);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
+    const cached = getCached() || [];
+    if (Array.isArray(data) && data.length > cached.length) {
+      // Only update cache if DynamoDB has more data
+      setCache(data);
+      return data;
+    }
+    if (Array.isArray(data) && data.length === 0 && cached.length > 0) {
+      // DynamoDB empty but we have local data — keep local
+      return cached;
+    }
     if (Array.isArray(data) && data.length > 0) {
       setCache(data);
       return data;
     }
-    // First time — seed DynamoDB with historical data
-    toast('Seeding your history...');
-    await fetch(API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(HISTORICAL_DATA)
-    });
-    setCache(HISTORICAL_DATA);
-    return HISTORICAL_DATA;
+    return cached.length > 0 ? cached : HISTORICAL_DATA;
   } catch(e) {
     console.warn('DynamoDB unavailable, using cache:', e);
     return getCached() || HISTORICAL_DATA;
@@ -590,6 +592,12 @@ async function refreshData() {
 // ── INIT ───────────────────────────────────────────────────────────────────
 document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
 document.getElementById('log-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+
+// Restore cache if it got overwritten with less data than historical
+const cached = getCached();
+if (!cached || cached.length < HISTORICAL_DATA.length) {
+  setCache(HISTORICAL_DATA);
+}
 
 // Load from DynamoDB, refresh UI when done
 renderMuscleGrid(); // render immediately from cache
