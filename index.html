@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GymLog">
+<title>GymLog</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0e0f;
+    --surface: #1a1a1c;
+    --surface2: #242426;
+    --border: #2e2e31;
+    --text: #f0f0f0;
+    --muted: #888;
+    --accent: #e8ff47;
+    --accent-dim: rgba(232,255,71,0.12);
+    --red: #ff5252;
+    --orange: #ff9a3c;
+    --green: #52ff8a;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; max-width: 480px; margin: 0 auto; padding-bottom: 80px; }
+  h1, h2, .label { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.04em; }
+
+  nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--surface); border-top: 1px solid var(--border); display: flex; z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
+  nav button { flex: 1; padding: 14px 0 10px; background: none; border: none; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 10px; font-weight: 500; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; transition: color 0.2s; }
+  nav button.active { color: var(--accent); }
+  nav button svg { width: 22px; height: 22px; }
+
+  .page { display: none; padding: 0 16px; }
+  .page.active { display: block; }
+
+  .page-header { padding: 20px 0 12px; display: flex; align-items: baseline; justify-content: space-between; }
+  .page-header h1 { font-size: 36px; color: var(--accent); }
+  .page-header span { color: var(--muted); font-size: 13px; }
+
+  .muscle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .muscle-card { background: var(--surface); border-radius: var(--radius); padding: 14px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .muscle-card .name { font-size: 14px; font-weight: 500; text-transform: capitalize; }
+  .muscle-card .days { font-family: 'Bebas Neue', sans-serif; font-size: 22px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-right: 10px; }
+  .dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot-orange { background: var(--orange); box-shadow: 0 0 6px var(--orange); }
+  .dot-red { background: var(--red); box-shadow: 0 0 6px var(--red); }
+  .days-green { color: var(--green); }
+  .days-orange { color: var(--orange); }
+  .days-red { color: var(--red); }
+
+  .btn { background: var(--accent); color: #0e0e0f; border: none; border-radius: 10px; padding: 14px 20px; font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 0.05em; cursor: pointer; width: 100%; transition: opacity 0.15s; }
+  .btn:active { opacity: 0.8; }
+  .btn-outline { background: none; color: var(--accent); border: 1.5px solid var(--accent); }
+  .btn-sm { padding: 8px 14px; font-size: 14px; width: auto; border-radius: 8px; }
+  .btn-muted { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+
+  .workout-date { background: var(--surface); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; border: 1px solid var(--border); color: var(--accent); font-family: 'Bebas Neue', sans-serif; font-size: 20px; }
+  .exercise-entry { background: var(--surface); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; border: 1px solid var(--border); }
+  .ex-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .ex-name { font-weight: 600; font-size: 15px; }
+  .ex-muscle { font-size: 11px; color: var(--muted); background: var(--surface2); padding: 2px 8px; border-radius: 20px; text-transform: capitalize; }
+  .ex-last { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .sets-area { margin-top: 8px; }
+  .set-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .set-num { color: var(--muted); font-size: 12px; width: 28px; flex-shrink: 0; font-family: 'Bebas Neue', sans-serif; font-size: 16px; }
+  .set-row input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 8px 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; text-align: center; min-width: 0; flex: 1; }
+  .set-row input:focus { outline: none; border-color: var(--accent); }
+  .set-row label { color: var(--muted); font-size: 11px; text-align: center; display: block; margin-top: 2px; }
+  .set-actions { display: flex; gap: 6px; margin-top: 6px; }
+  .set-actions button { flex: 1; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: 7px; font-size: 13px; cursor: pointer; }
+  select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 10px 12px; font-family: 'DM Sans', sans-serif; font-size: 14px; width: 100%; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+  select:focus { outline: none; border-color: var(--accent); }
+  .add-ex-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .add-ex-row select { flex: 1; }
+
+  .filter-row { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 4px; }
+  .filter-chip { background: var(--surface); border: 1px solid var(--border); color: var(--muted); border-radius: 20px; padding: 6px 14px; font-size: 13px; cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: all 0.15s; }
+  .filter-chip.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .history-group { margin-bottom: 18px; }
+  .history-group .group-label { font-family: 'Bebas Neue', sans-serif; font-size: 13px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 8px; text-transform: uppercase; }
+  .history-row { background: var(--surface); border-radius: 10px; padding: 12px 14px; margin-bottom: 6px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .history-row .ex { font-size: 14px; font-weight: 500; text-transform: capitalize; }
+  .history-row .muscle-tag { font-size: 11px; color: var(--muted); text-transform: capitalize; margin-top: 2px; }
+  .history-row .weight { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--accent); }
+  .pb-badge { font-size: 10px; background: var(--accent-dim); color: var(--accent); border-radius: 4px; padding: 2px 5px; margin-left: 6px; vertical-align: middle; }
+
+  .progress-select { margin-bottom: 14px; }
+  .chart-container { background: var(--surface); border-radius: var(--radius); padding: 16px; border: 1px solid var(--border); margin-bottom: 14px; }
+  .chart-title { font-family: 'Bebas Neue', sans-serif; font-size: 16px; color: var(--muted); margin-bottom: 12px; }
+  canvas { width: 100% !important; }
+  .stat-row { display: flex; gap: 10px; margin-bottom: 14px; }
+  .stat-box { flex: 1; background: var(--surface); border-radius: var(--radius); padding: 14px; border: 1px solid var(--border); text-align: center; }
+  .stat-box .val { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--accent); }
+  .stat-box .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* Settings */
+  .settings-section { margin-bottom: 20px; }
+  .settings-section h2 { font-size: 20px; color: var(--accent); margin-bottom: 12px; }
+  .settings-row { background: var(--surface); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 8px; border: 1px solid var(--border); }
+  .settings-row label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .settings-row input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 10px 12px; font-family: 'DM Sans', sans-serif; font-size: 13px; width: 100%; }
+  .settings-row input:focus { outline: none; border-color: var(--accent); }
+  .settings-row p { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+  .sync-status { font-size: 12px; padding: 6px 10px; border-radius: 6px; margin-top: 8px; display: inline-block; }
+  .sync-ok { background: rgba(82,255,138,0.1); color: var(--green); }
+  .sync-err { background: rgba(255,82,82,0.1); color: var(--red); }
+  .sync-pending { background: rgba(232,255,71,0.1); color: var(--accent); }
+
+  .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-80px); background: var(--accent); color: #0e0e0f; font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 0.05em; padding: 10px 20px; border-radius: 30px; transition: transform 0.3s; z-index: 300; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .empty { color: var(--muted); text-align: center; padding: 30px 0; font-size: 14px; }
+  ::-webkit-scrollbar { width: 0; }
+  .divider { height: 1px; background: var(--border); margin: 14px 0; }
+</style>
+</head>
+<body>
+
+<div id="page-plan" class="page active">
+  <div class="page-header"><h1>Today</h1><span id="today-date"></span></div>
+  <div class="muscle-grid" id="muscle-grid"></div>
+  <button class="btn" onclick="showPage('log')">+ Log Today's Workout</button>
+</div>
+
+<div id="page-log" class="page">
+  <div class="page-header"><h1>Log Workout</h1></div>
+  <div class="workout-date" id="log-date"></div>
+  <div class="add-ex-row">
+    <select id="ex-picker"><option value="">— Add exercise —</option></select>
+    <button class="btn btn-outline btn-sm" onclick="addExercise()">Add</button>
+  </div>
+  <div id="exercise-list"></div>
+  <button class="btn" onclick="saveWorkout()" style="margin-top:8px">Save Workout</button>
+</div>
+
+<div id="page-history" class="page">
+  <div class="page-header"><h1>History</h1></div>
+  <div class="filter-row" id="muscle-filters"></div>
+  <div id="history-list"></div>
+</div>
+
+<div id="page-progress" class="page">
+  <div class="page-header"><h1>Progress</h1></div>
+  <div class="progress-select">
+    <select id="progress-ex-picker" onchange="renderProgress()"><option value="">— Select exercise —</option></select>
+  </div>
+  <div id="progress-stats"></div>
+  <div class="chart-container" id="chart-wrap" style="display:none">
+    <div class="chart-title" id="chart-title"></div>
+    <canvas id="progress-chart" height="180"></canvas>
+  </div>
+</div>
+
+<div id="page-settings" class="page">
+  <div class="page-header"><h1>Settings</h1></div>
+
+  <div class="settings-section">
+    <h2>Google Sheets Sync</h2>
+    <div class="settings-row">
+      <label>Web App URL</label>
+      <input type="url" id="sheets-url" placeholder="https://script.google.com/macros/s/..." oninput="saveSheetUrl()">
+      <p>Paste your Google Apps Script deployment URL here. All new workouts will sync to your Google Sheet automatically.</p>
+      <div id="sync-status"></div>
+    </div>
+    <button class="btn btn-outline" onclick="testConnection()" style="margin-bottom:8px">Test Connection</button>
+    <button class="btn btn-muted btn-sm" onclick="syncAll()" style="width:100%;margin-bottom:8px">Force Sync All Local Data</button>
+  </div>
+
+  <div class="settings-section">
+    <h2>Setup Instructions</h2>
+    <div class="settings-row">
+      <p style="line-height:1.8">
+        <strong style="color:var(--text)">1.</strong> Go to <strong style="color:var(--accent)">sheets.google.com</strong> and create a new spreadsheet.<br>
+        <strong style="color:var(--text)">2.</strong> Click <strong style="color:var(--accent)">Extensions → Apps Script</strong>.<br>
+        <strong style="color:var(--text)">3.</strong> Delete any existing code and paste the Apps Script code below.<br>
+        <strong style="color:var(--text)">4.</strong> Click <strong style="color:var(--accent)">Deploy → New deployment</strong>.<br>
+        <strong style="color:var(--text)">5.</strong> Choose type: <strong style="color:var(--accent)">Web App</strong>. Set "Who has access" to <strong style="color:var(--accent)">Anyone</strong>.<br>
+        <strong style="color:var(--text)">6.</strong> Copy the deployment URL and paste it above.
+      </p>
+    </div>
+    <div class="settings-row" style="background:var(--bg);border-color:var(--accent)">
+      <label>Apps Script Code — Copy This</label>
+      <textarea id="apps-script-code" readonly style="background:transparent;border:none;color:var(--muted);font-family:monospace;font-size:11px;width:100%;height:220px;resize:none;outline:none;line-height:1.6"></textarea>
+      <button class="btn btn-outline btn-sm" onclick="copyScript()" style="margin-top:8px">Copy Code</button>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <h2>Data</h2>
+    <div class="settings-row">
+      <p>Your data is stored locally on this device. Use Google Sheets sync as your cloud backup.</p>
+    </div>
+    <button class="btn btn-muted btn-sm" onclick="exportCSV()" style="width:100%;margin-bottom:8px">Export All Data as CSV</button>
+  </div>
+</div>
+
+<nav>
+  <button class="active" onclick="showPage('plan')" id="nav-plan">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Plan
+  </button>
+  <button onclick="showPage('log')" id="nav-log">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>Log
+  </button>
+  <button onclick="showPage('history')" id="nav-history">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h4l3 7 4-14 3 7h4"/></svg>History
+  </button>
+  <button onclick="showPage('progress')" id="nav-progress">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Progress
+  </button>
+  <button onclick="showPage('settings')" id="nav-settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Setup
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+// ── MACHINES ──────────────────────────────────────────────────────────────
+const MACHINES = {"ab crunch":"core","back extension":"back","bar bicep curl":"bicep","bar chest press":"chest","bar deadlift":"glutes","bar lat pull down":"lats","bar single leg lunge":"quad","bar squat":"quad","bicep curl":"bicep","bosu squats":"quad","brick low row":"lats","cable chest down":"chest","cable chest straight":"chest","cable chest up":"chest","cable cross":"shoulder","calf extension":"calf","chest press":"chest","core":"core","dependent curl":"bicep","dumbbell bend over reverse fly":"shoulder","dumbbell hammer curl":"bicep","dumbbell shoulder press":"shoulder","dumbbell single leg lunge":"quad","dumbbell tri press":"tricep","glute kick":"glutes","glute lift":"glutes","hip ductor in":"hips","hip ductor out":"hips","lat pull down":"lats","lat raise":"lats","leg extension":"quad","pec fly":"chest","prone leg curl":"hamstrings","pull up assist":"lats","rear delt":"shoulder","rotary torso":"core","seated leg curl":"hamstrings","seated leg press":"quad","seated row":"back","shoulder press":"shoulder","tricep dip assist":"tricep","tricep dumbell":"tricep","tricep extension":"tricep","tricep press":"tricep","tricep press down":"tricep","bar single leg lung":"quad"};
+const MUSCLES = [...new Set(Object.values(MACHINES))].sort();
+
+// ── HISTORICAL DATA ────────────────────────────────────────────────────────
+const HISTORICAL_DATA = [{"date":"2026-03-21","exercise":"ab crunch","weight":100.0,"muscle":"core","sets":null,"reps":null},{"date":"2026-03-21","exercise":"dumbbell hammer curl","weight":25.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2026-03-21","exercise":"dumbbell single leg lunge","weight":25.0,"muscle":"quad","sets":null,"reps":null},{"date":"2026-03-21","exercise":"shoulder press","weight":77.5,"muscle":"shoulder","sets":null,"reps":null},{"date":"2026-03-17","exercise":"dumbbell shoulder press","weight":25.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2026-03-17","exercise":"chest press","weight":95.0,"muscle":"chest","sets":null,"reps":null},{"date":"2026-03-17","exercise":"core","weight":null,"muscle":"core","sets":null,"reps":null},{"date":"2026-03-17","exercise":"prone leg curl","weight":90.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2026-03-15","exercise":"seated row","weight":100.0,"muscle":"back","sets":null,"reps":null},{"date":"2026-03-15","exercise":"tricep press down","weight":60.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2026-03-15","exercise":"bar squat","weight":155.0,"muscle":"quad","sets":null,"reps":null},{"date":"2026-03-15","exercise":"bicep curl","weight":57.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2026-03-08","exercise":"dumbbell shoulder press","weight":27.5,"muscle":"shoulder","sets":null,"reps":null},{"date":"2026-03-08","exercise":"prone leg curl","weight":90.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2026-03-08","exercise":"back extension","weight":165.0,"muscle":"back","sets":null,"reps":null},{"date":"2026-03-06","exercise":"core","weight":null,"muscle":"core","sets":null,"reps":null},{"date":"2026-03-06","exercise":"glute kick","weight":80.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2026-03-06","exercise":"seated leg press","weight":270.0,"muscle":"quad","sets":null,"reps":null},{"date":"2026-03-06","exercise":"bar bicep curl","weight":50.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2026-03-05","exercise":"dumbbell single leg lunge","weight":25.0,"muscle":"quad","sets":null,"reps":null},{"date":"2026-03-05","exercise":"dumbbell hammer curl","weight":25.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2026-03-05","exercise":"tricep press down","weight":60.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2026-03-05","exercise":"calf extension","weight":280.0,"muscle":"calf","sets":null,"reps":null},{"date":"2026-03-03","exercise":"tricep dip assist","weight":20.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2026-03-03","exercise":"rear delt","weight":62.5,"muscle":"shoulder","sets":null,"reps":null},{"date":"2026-03-03","exercise":"pec fly","weight":87.5,"muscle":"chest","sets":null,"reps":null},{"date":"2026-03-03","exercise":"lat pull down","weight":117.5,"muscle":"lats","sets":null,"reps":null},{"date":"2026-02-26","exercise":"core","weight":null,"muscle":"core","sets":null,"reps":null},{"date":"2026-02-26","exercise":"prone leg curl","weight":90.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2026-02-26","exercise":"cable chest up","weight":20.0,"muscle":"chest","sets":null,"reps":null},{"date":"2026-02-26","exercise":"cable chest down","weight":20.0,"muscle":"chest","sets":null,"reps":null},{"date":"2026-02-26","exercise":"leg extension","weight":125.0,"muscle":"quad","sets":null,"reps":null},{"date":"2026-02-24","exercise":"hip ductor in","weight":95.0,"muscle":"hips","sets":null,"reps":null},{"date":"2026-02-24","exercise":"hip ductor out","weight":125.0,"muscle":"hips","sets":null,"reps":null},{"date":"2026-02-24","exercise":"dumbbell bend over reverse fly","weight":15.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2026-02-24","exercise":"dumbbell single leg lunge","weight":20.0,"muscle":"quad","sets":null,"reps":null},{"date":"2026-02-24","exercise":"lat pull down","weight":117.5,"muscle":"lats","sets":null,"reps":null},{"date":"2026-02-22","exercise":"shoulder press","weight":77.5,"muscle":"shoulder","sets":null,"reps":null},{"date":"2026-02-22","exercise":"calf extension","weight":280.0,"muscle":"calf","sets":null,"reps":null},{"date":"2026-02-22","exercise":"core","weight":null,"muscle":"core","sets":null,"reps":null},{"date":"2026-02-22","exercise":"dumbbell hammer curl","weight":25.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2026-02-22","exercise":"dumbbell tri press","weight":27.5,"muscle":"tricep","sets":null,"reps":null},{"date":"2026-02-22","exercise":"bicep curl","weight":52.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2026-02-13","exercise":"seated leg press","weight":260.0,"muscle":"quad","sets":null,"reps":null},{"date":"2026-02-13","exercise":"seated row","weight":95.0,"muscle":"back","sets":null,"reps":null},{"date":"2026-02-13","exercise":"chest press","weight":95.0,"muscle":"chest","sets":null,"reps":null},{"date":"2026-02-13","exercise":"shoulder press","weight":75.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2026-02-07","exercise":"tricep dip assist","weight":15.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2026-02-07","exercise":"bar chest press","weight":95.0,"muscle":"chest","sets":null,"reps":null},{"date":"2026-02-07","exercise":"bar squat","weight":155.0,"muscle":"quad","sets":null,"reps":null},{"date":"2026-02-07","exercise":"bar single leg lung","weight":75.0,"muscle":"quad","sets":null,"reps":null},{"date":"2026-02-04","exercise":"cable chest up","weight":20.0,"muscle":"chest","sets":null,"reps":null},{"date":"2026-02-04","exercise":"cable chest down","weight":20.0,"muscle":"chest","sets":null,"reps":null},{"date":"2026-02-04","exercise":"dumbbell bend over reverse fly","weight":15.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2026-02-03","exercise":"bicep curl","weight":50.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2026-02-03","exercise":"chest press","weight":90.0,"muscle":"chest","sets":null,"reps":null},{"date":"2026-02-03","exercise":"back extension","weight":165.0,"muscle":"back","sets":null,"reps":null},{"date":"2026-02-03","exercise":"leg extension","weight":125.0,"muscle":"quad","sets":null,"reps":null},{"date":"2026-02-03","exercise":"shoulder press","weight":75.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2026-01-26","exercise":"core","weight":null,"muscle":"core","sets":null,"reps":null},{"date":"2026-01-26","exercise":"hip ductor in","weight":100.0,"muscle":"hips","sets":null,"reps":null},{"date":"2026-01-26","exercise":"hip ductor out","weight":125.0,"muscle":"hips","sets":null,"reps":null},{"date":"2026-01-26","exercise":"dumbbell hammer curl","weight":27.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2026-01-26","exercise":"dumbbell tri press","weight":30.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2026-01-26","exercise":"glute lift","weight":160.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2026-01-23","exercise":"pull up assist","weight":50.0,"muscle":"lats","sets":null,"reps":null},{"date":"2026-01-23","exercise":"tricep dip assist","weight":15.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2026-01-22","exercise":"prone leg curl","weight":90.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2026-01-22","exercise":"rear delt","weight":62.5,"muscle":"shoulder","sets":null,"reps":null},{"date":"2026-01-22","exercise":"pec fly","weight":87.5,"muscle":"chest","sets":null,"reps":null},{"date":"2026-01-22","exercise":"chest press","weight":90.0,"muscle":"chest","sets":null,"reps":null},{"date":"2026-01-22","exercise":"seated leg press","weight":260.0,"muscle":"quad","sets":null,"reps":null},{"date":"2026-01-17","exercise":"seated row","weight":105.0,"muscle":"back","sets":null,"reps":null},{"date":"2026-01-17","exercise":"dependent curl","weight":37.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2026-01-17","exercise":"dumbbell hammer curl","weight":25.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2026-01-17","exercise":"dumbbell bend over reverse fly","weight":15.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2026-01-17","exercise":"dumbbell tri press","weight":30.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2026-01-15","exercise":"hip ductor out","weight":125.0,"muscle":"hips","sets":null,"reps":null},{"date":"2026-01-15","exercise":"hip ductor in","weight":100.0,"muscle":"hips","sets":null,"reps":null},{"date":"2026-01-15","exercise":"cable chest down","weight":15.0,"muscle":"chest","sets":null,"reps":null},{"date":"2026-01-15","exercise":"cable chest straight","weight":15.0,"muscle":"chest","sets":null,"reps":null},{"date":"2026-01-15","exercise":"cable chest down","weight":20.0,"muscle":"chest","sets":null,"reps":null},{"date":"2026-01-15","exercise":"leg extension","weight":120.0,"muscle":"quad","sets":null,"reps":null},{"date":"2026-01-11","exercise":"bar bicep curl","weight":50.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2026-01-11","exercise":"dumbbell shoulder press","weight":25.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2026-01-11","exercise":"bar single leg lung","weight":75.0,"muscle":"quad","sets":null,"reps":null},{"date":"2026-01-11","exercise":"bar squat","weight":145.0,"muscle":"quad","sets":null,"reps":null},{"date":"2026-01-07","exercise":"tricep press down","weight":60.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2026-01-07","exercise":"bar lat pull down","weight":60.0,"muscle":"lats","sets":null,"reps":null},{"date":"2026-01-07","exercise":"chest press","weight":90.0,"muscle":"chest","sets":null,"reps":null},{"date":"2026-01-07","exercise":"dependent curl","weight":35.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2026-01-06","exercise":"pec fly","weight":85.0,"muscle":"chest","sets":null,"reps":null},{"date":"2026-01-06","exercise":"glute lift","weight":150.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2026-01-06","exercise":"back extension","weight":160.0,"muscle":"back","sets":null,"reps":null},{"date":"2026-01-04","exercise":"lat raise","weight":12.0,"muscle":"lats","sets":null,"reps":null},{"date":"2026-01-04","exercise":"cable chest straight","weight":20.0,"muscle":"chest","sets":null,"reps":null},{"date":"2026-01-04","exercise":"rear delt","weight":60.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2026-01-04","exercise":"leg extension","weight":120.0,"muscle":"quad","sets":null,"reps":null},{"date":"2026-01-04","exercise":"calf extension","weight":280.0,"muscle":"calf","sets":null,"reps":null},{"date":"2026-01-02","exercise":"calf extension","weight":280.0,"muscle":"calf","sets":null,"reps":null},{"date":"2026-01-02","exercise":"seated leg curl","weight":60.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2026-01-02","exercise":"ab crunch","weight":90.0,"muscle":"core","sets":null,"reps":null},{"date":"2026-01-02","exercise":"tricep dip assist","weight":15.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2026-01-02","exercise":"hip ductor out","weight":125.0,"muscle":"hips","sets":null,"reps":null},{"date":"2026-01-02","exercise":"hip ductor in","weight":100.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-12-31","exercise":"dumbbell shoulder press","weight":25.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-12-31","exercise":"dumbbell hammer curl","weight":20.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-12-31","exercise":"cable chest up","weight":20.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-12-31","exercise":"cable chest down","weight":20.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-12-31","exercise":"dependent curl","weight":35.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-12-31","exercise":"lat pull down","weight":117.5,"muscle":"lats","sets":null,"reps":null},{"date":"2025-12-24","exercise":"core","weight":null,"muscle":"core","sets":null,"reps":null},{"date":"2025-12-24","exercise":"seated row","weight":105.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-12-24","exercise":"pec fly","weight":85.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-12-24","exercise":"leg extension","weight":115.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-12-23","exercise":"bicep curl","weight":50.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-12-23","exercise":"seated leg press","weight":260.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-12-23","exercise":"hip ductor out","weight":125.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-12-23","exercise":"hip ductor in","weight":95.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-12-21","exercise":"core","weight":null,"muscle":"core","sets":null,"reps":null},{"date":"2025-12-21","exercise":"cable chest down","weight":20.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-12-21","exercise":"tricep press","weight":152.5,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-12-21","exercise":"cable chest up","weight":20.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-12-19","exercise":"tricep dumbell","weight":30.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-12-19","exercise":"bar bicep curl","weight":40.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-12-18","exercise":"tricep dip assist","weight":20.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-12-18","exercise":"glute lift","weight":150.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-12-18","exercise":"dumbbell bend over reverse fly","weight":12.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-12-18","exercise":"lat raise","weight":10.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-12-18","exercise":"dumbbell shoulder press","weight":25.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-12-18","exercise":"calf extension","weight":280.0,"muscle":"calf","sets":null,"reps":null},{"date":"2025-12-15","exercise":"bar squat","weight":145.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-12-15","exercise":"bar chest press","weight":95.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-12-15","exercise":"hip ductor in","weight":95.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-12-15","exercise":"hip ductor out","weight":125.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-12-13","exercise":"core","weight":null,"muscle":"core","sets":null,"reps":null},{"date":"2025-12-13","exercise":"prone leg curl","weight":90.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-12-13","exercise":"seated leg press","weight":260.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-12-13","exercise":"bar bicep curl","weight":40.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-12-08","exercise":"pull up assist","weight":50.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-12-08","exercise":"cable chest down","weight":15.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-12-08","exercise":"cable chest up","weight":20.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-12-08","exercise":"leg extension","weight":115.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-12-08","exercise":"dumbbell bend over reverse fly","weight":10.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-12-08","exercise":"dumbbell shoulder press","weight":25.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-12-06","exercise":"calf extension","weight":270.0,"muscle":"calf","sets":null,"reps":null},{"date":"2025-12-06","exercise":"glute lift","weight":150.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-12-06","exercise":"tricep dumbell","weight":27.5,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-12-06","exercise":"bicep curl","weight":50.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-12-06","exercise":"lat pull down","weight":115.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-12-05","exercise":"prone leg curl","weight":90.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-12-01","exercise":"seated leg press","weight":260.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-12-01","exercise":"cable cross","weight":15.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-12-01","exercise":"cable chest up","weight":20.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-12-01","exercise":"cable chest down","weight":20.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-11-30","exercise":"dumbbell shoulder press","weight":25.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-11-30","exercise":"core","weight":null,"muscle":"core","sets":null,"reps":null},{"date":"2025-11-30","exercise":"hip ductor in","weight":95.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-11-30","exercise":"hip ductor out","weight":125.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-11-30","exercise":"bar bicep curl","weight":40.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-11-29","exercise":"chest press","weight":90.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-11-29","exercise":"tricep press down","weight":55.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-11-29","exercise":"bar deadlift","weight":95.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-11-29","exercise":"bar squat","weight":145.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-11-27","exercise":"back extension","weight":160.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-11-27","exercise":"lat pull down","weight":115.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-11-27","exercise":"bicep curl","weight":50.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-11-25","exercise":"dumbbell shoulder press","weight":25.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-11-25","exercise":"seated row","weight":105.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-11-25","exercise":"glute kick","weight":70.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-11-25","exercise":"prone leg curl","weight":87.5,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-11-23","exercise":"core","weight":null,"muscle":"core","sets":null,"reps":null},{"date":"2025-11-23","exercise":"seated leg press","weight":250.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-11-23","exercise":"dumbbell shoulder press","weight":25.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-11-23","exercise":"bar bicep curl","weight":30.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-11-22","exercise":"pec fly","weight":85.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-11-22","exercise":"hip ductor out","weight":125.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-11-22","exercise":"hip ductor in","weight":95.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-11-22","exercise":"tricep dip assist","weight":20.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-11-19","exercise":"lat raise","weight":12.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-11-19","exercise":"glute kick","weight":70.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-11-19","exercise":"chest press","weight":87.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-11-19","exercise":"bicep curl","weight":47.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-11-17","exercise":"dependent curl","weight":37.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-11-17","exercise":"core","weight":null,"muscle":"core","sets":null,"reps":null},{"date":"2025-11-17","exercise":"cable chest down","weight":15.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-11-17","exercise":"cable chest up","weight":15.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-11-17","exercise":"prone leg curl","weight":87.5,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-11-16","exercise":"dumbbell bend over reverse fly","weight":10.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-11-16","exercise":"dumbbell shoulder press","weight":20.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-11-16","exercise":"brick low row","weight":85.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-11-16","exercise":"chest press","weight":87.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-11-16","exercise":"tricep press down","weight":55.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-11-16","exercise":"leg extension","weight":115.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-11-13","exercise":"hip ductor in","weight":85.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-11-13","exercise":"hip ductor out","weight":115.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-11-13","exercise":"back extension","weight":175.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-11-13","exercise":"seated row","weight":105.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-11-13","exercise":"bicep curl","weight":47.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-11-09","exercise":"prone leg curl","weight":85.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-11-09","exercise":"chest press","weight":87.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-11-09","exercise":"tricep press down","weight":55.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-11-09","exercise":"leg extension","weight":110.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-11-05","exercise":"glute lift","weight":140.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-11-05","exercise":"tricep dip assist","weight":20.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-11-05","exercise":"back extension","weight":175.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-11-04","exercise":"lat raise","weight":12.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-11-04","exercise":"dependent curl","weight":35.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-11-04","exercise":"shoulder press","weight":70.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-11-04","exercise":"seated leg press","weight":250.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-11-03","exercise":"core","weight":null,"muscle":"core","sets":null,"reps":null},{"date":"2025-11-03","exercise":"hip ductor out","weight":115.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-11-03","exercise":"hip ductor in","weight":85.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-11-03","exercise":"pec fly","weight":82.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-11-03","exercise":"bicep curl","weight":45.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-11-02","exercise":"lat pull down","weight":115.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-11-02","exercise":"tricep press down","weight":55.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-11-02","exercise":"bar chest press","weight":90.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-10-26","exercise":"core","weight":null,"muscle":"core","sets":null,"reps":null},{"date":"2025-10-26","exercise":"bar deadlift","weight":95.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-10-26","exercise":"bar squat","weight":145.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-10-26","exercise":"bar chest press","weight":85.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-10-25","exercise":"prone leg curl","weight":85.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-10-25","exercise":"tricep press","weight":152.5,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-10-25","exercise":"rear delt","weight":60.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-10-25","exercise":"pec fly","weight":82.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-10-23","exercise":"hip ductor in","weight":85.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-10-23","exercise":"hip ductor out","weight":115.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-10-23","exercise":"seated row","weight":105.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-10-23","exercise":"chest press","weight":87.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-10-20","exercise":"tricep dip assist","weight":20.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-10-20","exercise":"calf extension","weight":260.0,"muscle":"calf","sets":null,"reps":null},{"date":"2025-10-20","exercise":"lat pull down","weight":115.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-10-20","exercise":"shoulder press","weight":70.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-10-20","exercise":"bicep curl","weight":45.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-10-13","exercise":"bar single leg lung","weight":75.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-10-13","exercise":"bar chest press","weight":80.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-10-12","exercise":"pull up assist","weight":60.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-10-12","exercise":"tricep dip assist","weight":20.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-10-12","exercise":"rear delt","weight":60.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-10-12","exercise":"pec fly","weight":82.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-10-11","exercise":"core","weight":null,"muscle":"core","sets":null,"reps":null},{"date":"2025-10-11","exercise":"hip ductor out","weight":115.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-10-11","exercise":"hip ductor in","weight":85.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-10-11","exercise":"tricep press","weight":150.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-10-11","exercise":"chest press","weight":87.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-10-11","exercise":"seated row","weight":105.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-10-08","exercise":"prone leg curl","weight":85.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-10-08","exercise":"leg extension","weight":112.5,"muscle":"quad","sets":null,"reps":null},{"date":"2025-10-08","exercise":"shoulder press","weight":70.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-10-08","exercise":"bicep curl","weight":45.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-10-08","exercise":"dependent curl","weight":35.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-10-01","exercise":"glute kick","weight":70.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-10-01","exercise":"tricep dip assist","weight":20.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-10-01","exercise":"calf extension","weight":250.0,"muscle":"calf","sets":null,"reps":null},{"date":"2025-10-01","exercise":"lat pull down","weight":115.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-10-01","exercise":"seated row","weight":105.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-09-30","exercise":"chest press","weight":87.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-09-30","exercise":"rear delt","weight":60.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-09-30","exercise":"pec fly","weight":82.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-09-28","exercise":"tricep press","weight":150.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-09-28","exercise":"lat pull down","weight":115.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-09-28","exercise":"seated leg press","weight":250.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-09-27","exercise":"prone leg curl","weight":85.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-09-27","exercise":"hip ductor in","weight":95.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-09-27","exercise":"hip ductor out","weight":115.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-09-27","exercise":"chest press","weight":87.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-09-27","exercise":"dependent curl","weight":35.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-09-17","exercise":"tricep dip assist","weight":20.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-09-17","exercise":"chest press","weight":85.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-09-17","exercise":"prone leg curl","weight":82.5,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-09-17","exercise":"glute lift","weight":140.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-09-16","exercise":"seated leg press","weight":240.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-09-16","exercise":"bicep curl","weight":42.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-09-16","exercise":"lat raise","weight":15.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-09-16","exercise":"hip ductor out","weight":110.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-09-16","exercise":"hip ductor in","weight":85.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-09-13","exercise":"shoulder press","weight":70.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-09-13","exercise":"leg extension","weight":115.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-09-13","exercise":"seated leg curl","weight":70.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-09-13","exercise":"bicep curl","weight":40.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-09-10","exercise":"shoulder press","weight":70.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-09-10","exercise":"seated row","weight":105.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-09-10","exercise":"tricep extension","weight":55.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-09-10","exercise":"bar chest press","weight":85.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-09-07","exercise":"dependent curl","weight":32.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-09-07","exercise":"hip ductor in","weight":85.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-09-07","exercise":"hip ductor out","weight":110.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-09-06","exercise":"back extension","weight":170.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-09-06","exercise":"glute lift","weight":140.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-09-06","exercise":"prone leg curl","weight":82.5,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-09-06","exercise":"tricep dip assist","weight":20.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-09-06","exercise":"pull up assist","weight":50.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-09-01","exercise":"core","weight":null,"muscle":"core","sets":null,"reps":null},{"date":"2025-09-01","exercise":"rear delt","weight":57.5,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-09-01","exercise":"pec fly","weight":80.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-09-01","exercise":"leg extension","weight":105.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-09-01","exercise":"lat pull down","weight":115.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-08-31","exercise":"chest press","weight":85.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-08-31","exercise":"shoulder press","weight":70.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-08-31","exercise":"hip ductor out","weight":110.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-08-31","exercise":"hip ductor in","weight":85.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-08-31","exercise":"bicep curl","weight":42.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-08-23","exercise":"tricep dip assist","weight":20.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-08-23","exercise":"shoulder press","weight":70.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-08-23","exercise":"back extension","weight":160.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-08-21","exercise":"dependent curl","weight":32.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-08-21","exercise":"bar squat","weight":145.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-08-21","exercise":"lat pull down","weight":115.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-08-21","exercise":"core","weight":null,"muscle":"core","sets":null,"reps":null},{"date":"2025-08-21","exercise":"prone leg curl","weight":80.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-08-18","exercise":"calf extension","weight":250.0,"muscle":"calf","sets":null,"reps":null},{"date":"2025-08-18","exercise":"leg extension","weight":105.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-08-18","exercise":"chest press","weight":85.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-08-18","exercise":"dependent curl","weight":32.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-08-18","exercise":"glute lift","weight":140.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-08-16","exercise":"tricep dip assist","weight":20.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-08-16","exercise":"core","weight":null,"muscle":"core","sets":null,"reps":null},{"date":"2025-08-16","exercise":"hip ductor in","weight":85.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-08-16","exercise":"hip ductor out","weight":110.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-08-15","exercise":"tricep press","weight":150.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-08-15","exercise":"rear delt","weight":57.5,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-08-15","exercise":"pec fly","weight":80.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-08-12","exercise":"bar chest press","weight":85.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-08-12","exercise":"seated leg curl","weight":60.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-08-12","exercise":"core","weight":null,"muscle":"core","sets":null,"reps":null},{"date":"2025-08-12","exercise":"pull up assist","weight":50.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-08-12","exercise":"dependent curl","weight":32.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-08-11","exercise":"bicep curl","weight":40.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-08-11","exercise":"seated row","weight":100.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-08-11","exercise":"lat pull down","weight":110.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-08-03","exercise":"leg extension","weight":100.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-08-03","exercise":"tricep press","weight":150.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-08-03","exercise":"hip ductor in","weight":80.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-08-03","exercise":"hip ductor out","weight":110.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-08-02","exercise":"seated row","weight":100.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-08-02","exercise":"glute lift","weight":140.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-08-02","exercise":"pull up assist","weight":50.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-08-02","exercise":"prone leg curl","weight":80.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-08-02","exercise":"dependent curl","weight":30.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-08-01","exercise":"shoulder press","weight":70.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-07-28","exercise":"core","weight":null,"muscle":"core","sets":null,"reps":null},{"date":"2025-07-29","exercise":"core","weight":null,"muscle":"core","sets":null,"reps":null},{"date":"2025-07-29","exercise":"calf extension","weight":240.0,"muscle":"calf","sets":null,"reps":null},{"date":"2025-07-29","exercise":"lat pull down","weight":110.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-07-29","exercise":"pull up assist","weight":50.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-07-29","exercise":"bar chest press","weight":85.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-07-28","exercise":"rear delt","weight":55.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-07-28","exercise":"pec fly","weight":77.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-07-28","exercise":"seated leg press","weight":240.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-07-28","exercise":"tricep press","weight":140.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-07-26","exercise":"hip ductor in","weight":85.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-07-26","exercise":"hip ductor out","weight":110.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-07-26","exercise":"chest press","weight":85.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-07-26","exercise":"shoulder press","weight":70.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-07-26","exercise":"seated leg curl","weight":60.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-07-26","exercise":"dependent curl","weight":30.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-07-21","exercise":"prone leg curl","weight":75.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-07-21","exercise":"pull up assist","weight":50.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-07-21","exercise":"tricep dip assist","weight":30.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-07-21","exercise":"lat pull down","weight":100.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-07-21","exercise":"back extension","weight":150.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-07-18","exercise":"shoulder press","weight":70.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-07-18","exercise":"rear delt","weight":55.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-07-18","exercise":"bar chest press","weight":75.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-07-18","exercise":"bar squat","weight":140.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-07-16","exercise":"calf extension","weight":230.0,"muscle":"calf","sets":null,"reps":null},{"date":"2025-07-16","exercise":"glute lift","weight":130.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-07-16","exercise":"seated row","weight":97.5,"muscle":"back","sets":null,"reps":null},{"date":"2025-07-16","exercise":"hip ductor out","weight":130.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-07-16","exercise":"hip ductor in","weight":85.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-07-14","exercise":"lat raise","weight":12.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-07-14","exercise":"tricep dip assist","weight":30.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-07-14","exercise":"prone leg curl","weight":75.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-07-14","exercise":"bicep curl","weight":47.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-07-14","exercise":"dependent curl","weight":27.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-07-14","exercise":"leg extension","weight":95.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-07-11","exercise":"bar squat","weight":140.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-07-11","exercise":"bar chest press","weight":75.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-07-11","exercise":"shoulder press","weight":70.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-07-11","exercise":"pull up assist","weight":60.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-07-07","exercise":"calf extension","weight":220.0,"muscle":"calf","sets":null,"reps":null},{"date":"2025-07-07","exercise":"hip ductor out","weight":130.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-07-07","exercise":"hip ductor in","weight":85.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-07-07","exercise":"pull up assist","weight":65.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-07-07","exercise":"prone leg curl","weight":75.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-07-04","exercise":"rear delt","weight":55.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-07-04","exercise":"pec fly","weight":77.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-07-04","exercise":"shoulder press","weight":65.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-07-02","exercise":"pull up assist","weight":60.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-07-02","exercise":"tricep dip assist","weight":30.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-07-02","exercise":"bicep curl","weight":45.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-07-02","exercise":"chest press","weight":85.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-07-02","exercise":"lat pull down","weight":100.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-06-24","exercise":"leg extension","weight":90.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-06-24","exercise":"pull up assist","weight":60.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-06-24","exercise":"tricep dip assist","weight":30.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-06-24","exercise":"hip ductor out","weight":130.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-06-24","exercise":"hip ductor in","weight":85.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-06-22","exercise":"pull up assist","weight":65.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-06-22","exercise":"chest press","weight":85.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-06-22","exercise":"rear delt","weight":55.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-06-22","exercise":"pec fly","weight":77.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-06-22","exercise":"bicep curl","weight":45.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-06-19","exercise":"bar chest press","weight":65.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-06-19","exercise":"bar single leg lung","weight":75.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-06-19","exercise":"bar squat","weight":135.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-06-19","exercise":"shoulder press","weight":60.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-06-16","exercise":"tricep press","weight":135.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-06-16","exercise":"calf extension","weight":215.0,"muscle":"calf","sets":null,"reps":null},{"date":"2025-06-16","exercise":"seated leg curl","weight":50.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-06-16","exercise":"bicep curl","weight":42.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-06-16","exercise":"lat pull down","weight":95.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-06-15","exercise":"glute lift","weight":120.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-06-15","exercise":"leg extension","weight":90.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-06-15","exercise":"prone leg curl","weight":82.5,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-06-15","exercise":"pull up assist","weight":75.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-06-15","exercise":"tricep dip assist","weight":30.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-06-11","exercise":"chest press","weight":85.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-06-11","exercise":"seated row","weight":97.5,"muscle":"back","sets":null,"reps":null},{"date":"2025-06-11","exercise":"shoulder press","weight":60.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-06-11","exercise":"hip ductor in","weight":85.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-06-11","exercise":"hip ductor out","weight":125.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-06-09","exercise":"pull up assist","weight":75.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-06-09","exercise":"tricep dip assist","weight":30.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-06-09","exercise":"dependent curl","weight":27.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-06-09","exercise":"back extension","weight":145.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-06-08","exercise":"lat raise","weight":12.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-06-08","exercise":"seated leg curl","weight":60.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-06-08","exercise":"glute lift","weight":110.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-06-08","exercise":"prone leg curl","weight":82.5,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-06-08","exercise":"seated leg press","weight":240.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-06-06","exercise":"tricep dip assist","weight":35.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-06-06","exercise":"rear delt","weight":55.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-06-06","exercise":"pec fly","weight":77.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-06-06","exercise":"bicep curl","weight":42.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-06-03","exercise":"shoulder press","weight":60.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-06-03","exercise":"chest press","weight":85.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-06-03","exercise":"hip ductor out","weight":125.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-06-03","exercise":"hip ductor in","weight":80.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-06-03","exercise":"leg extension","weight":85.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-06-03","exercise":"calf extension","weight":210.0,"muscle":"calf","sets":null,"reps":null},{"date":"2025-05-29","exercise":"tricep press","weight":135.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-05-29","exercise":"chest press","weight":85.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-05-29","exercise":"bar single leg lung","weight":75.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-05-29","exercise":"bar squat","weight":135.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-05-27","exercise":"calf extension","weight":200.0,"muscle":"calf","sets":null,"reps":null},{"date":"2025-05-27","exercise":"dependent curl","weight":25.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-05-27","exercise":"lat pull down","weight":95.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-05-27","exercise":"rear delt","weight":50.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-05-27","exercise":"pec fly","weight":77.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-05-26","exercise":"glute lift","weight":110.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-05-26","exercise":"back extension","weight":145.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-05-26","exercise":"leg extension","weight":75.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-05-26","exercise":"seated leg press","weight":240.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-05-25","exercise":"bicep curl","weight":42.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-05-25","exercise":"prone leg curl","weight":82.5,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-05-25","exercise":"hip ductor in","weight":70.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-05-23","exercise":"lat raise","weight":12.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-05-23","exercise":"seated row","weight":97.5,"muscle":"back","sets":null,"reps":null},{"date":"2025-05-23","exercise":"calf extension","weight":200.0,"muscle":"calf","sets":null,"reps":null},{"date":"2025-05-23","exercise":"tricep press","weight":130.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-05-23","exercise":"chest press","weight":85.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-05-15","exercise":"chest press","weight":85.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-05-15","exercise":"rear delt","weight":50.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-05-15","exercise":"pec fly","weight":75.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-05-13","exercise":"prone leg curl","weight":82.5,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-05-13","exercise":"tricep dip assist","weight":35.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-05-13","exercise":"calf extension","weight":180.0,"muscle":"calf","sets":null,"reps":null},{"date":"2025-05-13","exercise":"hip ductor in","weight":70.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-05-13","exercise":"hip ductor out","weight":125.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-05-12","exercise":"seated row","weight":95.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-05-12","exercise":"bicep curl","weight":40.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-05-12","exercise":"dependent curl","weight":25.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-05-11","exercise":"shoulder press","weight":55.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-05-11","exercise":"bar deadlift","weight":115.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-05-11","exercise":"bar single leg lung","weight":75.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-05-11","exercise":"bar squat","weight":125.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-05-08","exercise":"tricep press","weight":130.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-05-08","exercise":"back extension","weight":145.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-05-08","exercise":"pec fly","weight":75.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-05-08","exercise":"glute lift","weight":110.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-05-06","exercise":"hip ductor out","weight":115.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-05-06","exercise":"hip ductor in","weight":65.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-05-06","exercise":"chest press","weight":85.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-05-06","exercise":"prone leg curl","weight":82.5,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-05-06","exercise":"seated leg press","weight":230.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-05-05","exercise":"tricep dip assist","weight":35.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-05-05","exercise":"dependent curl","weight":25.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-05-05","exercise":"bicep curl","weight":42.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-05-05","exercise":"calf extension","weight":170.0,"muscle":"calf","sets":null,"reps":null},{"date":"2025-05-04","exercise":"seated row","weight":95.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-05-04","exercise":"chest press","weight":85.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-05-04","exercise":"bar single leg lung","weight":65.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-05-04","exercise":"lat raise","weight":12.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-05-02","exercise":"glute lift","weight":100.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-05-02","exercise":"prone leg curl","weight":82.5,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-05-02","exercise":"bar squat","weight":125.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-05-02","exercise":"shoulder press","weight":55.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-05-02","exercise":"bicep curl","weight":40.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-04-29","exercise":"hip ductor in","weight":65.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-04-29","exercise":"hip ductor out","weight":115.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-04-29","exercise":"tricep press","weight":120.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-04-29","exercise":"rear delt","weight":47.5,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-04-29","exercise":"pec fly","weight":72.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-04-28","exercise":"shoulder press","weight":52.5,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-04-28","exercise":"lat pull down","weight":95.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-04-28","exercise":"seated row","weight":95.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-04-28","exercise":"chest press","weight":85.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-04-28","exercise":"dependent curl","weight":22.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-04-11","exercise":"leg extension","weight":75.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-04-11","exercise":"bicep curl","weight":42.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-04-11","exercise":"hip ductor in","weight":70.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-04-11","exercise":"hip ductor out","weight":125.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-04-11","exercise":"tricep dip assist","weight":35.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-04-09","exercise":"shoulder press","weight":57.5,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-04-09","exercise":"dependent curl","weight":22.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-04-09","exercise":"tricep press","weight":130.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-04-09","exercise":"glute lift","weight":100.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-04-09","exercise":"prone leg curl","weight":82.5,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-04-07","exercise":"lat raise","weight":12.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-04-07","exercise":"calf extension","weight":170.0,"muscle":"calf","sets":null,"reps":null},{"date":"2025-04-07","exercise":"chest press","weight":85.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-04-06","exercise":"tricep dip assist","weight":45.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-04-06","exercise":"seated row","weight":100.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-04-06","exercise":"lat pull down","weight":100.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-04-06","exercise":"back extension","weight":140.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-04-06","exercise":"bar squat","weight":125.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-04-04","exercise":"seated leg press","weight":220.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-04-04","exercise":"dependent curl","weight":20.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-04-04","exercise":"hip ductor in","weight":70.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-04-04","exercise":"hip ductor out","weight":115.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-04-04","exercise":"rear delt","weight":50.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-04-04","exercise":"pec fly","weight":75.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-04-02","exercise":"calf extension","weight":160.0,"muscle":"calf","sets":null,"reps":null},{"date":"2025-04-02","exercise":"tricep dip assist","weight":45.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-04-02","exercise":"glute lift","weight":100.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-04-02","exercise":"back extension","weight":140.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-04-02","exercise":"tricep press","weight":130.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-03-31","exercise":"chest press","weight":82.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-03-31","exercise":"bicep curl","weight":42.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-03-31","exercise":"lat raise","weight":12.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-03-31","exercise":"seated leg press","weight":200.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-03-31","exercise":"seated leg curl","weight":60.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-03-25","exercise":"glute lift","weight":90.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-03-25","exercise":"hip ductor out","weight":115.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-03-25","exercise":"hip ductor in","weight":65.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-03-25","exercise":"prone leg curl","weight":80.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-03-25","exercise":"shoulder press","weight":55.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-03-23","exercise":"lat pull down","weight":100.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-03-23","exercise":"seated row","weight":100.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-03-23","exercise":"chest press","weight":82.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-03-23","exercise":"dependent curl","weight":17.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-03-23","exercise":"tricep dip assist","weight":50.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-03-23","exercise":"bar deadlift","weight":115.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-03-23","exercise":"bar squat","weight":115.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-03-21","exercise":"bicep curl","weight":40.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-03-14","exercise":"dependent curl","weight":17.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-03-14","exercise":"bicep curl","weight":40.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-03-13","exercise":"pec fly","weight":75.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-03-13","exercise":"leg extension","weight":75.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-03-13","exercise":"seated leg press","weight":200.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-03-13","exercise":"prone leg curl","weight":80.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-03-13","exercise":"chest press","weight":82.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-03-11","exercise":"tricep press","weight":125.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-03-11","exercise":"calf extension","weight":150.0,"muscle":"calf","sets":null,"reps":null},{"date":"2025-03-11","exercise":"shoulder press","weight":50.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-03-11","exercise":"glute lift","weight":80.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-03-11","exercise":"hip ductor out","weight":115.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-03-11","exercise":"hip ductor in","weight":65.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-03-07","exercise":"dependent curl","weight":15.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-03-07","exercise":"bicep curl","weight":35.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-03-05","exercise":"pec fly","weight":75.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-03-05","exercise":"rotary torso","weight":100.0,"muscle":"core","sets":null,"reps":null},{"date":"2025-03-05","exercise":"seated row","weight":90.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-03-05","exercise":"leg extension","weight":70.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-03-05","exercise":"prone leg curl","weight":70.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-03-04","exercise":"chest press","weight":80.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-03-04","exercise":"shoulder press","weight":45.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-03-04","exercise":"tricep dip assist","weight":60.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-03-04","exercise":"glute lift","weight":70.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-03-04","exercise":"lat pull down","weight":100.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-03-04","exercise":"tricep press","weight":120.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-03-02","exercise":"lat raise","weight":12.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-03-02","exercise":"bar squat","weight":115.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-03-02","exercise":"chest press","weight":80.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-03-02","exercise":"hip ductor in","weight":55.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-03-02","exercise":"hip ductor out","weight":110.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-03-02","exercise":"calf extension","weight":140.0,"muscle":"calf","sets":null,"reps":null},{"date":"2025-03-01","exercise":"bicep curl","weight":35.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-03-01","exercise":"tricep dip assist","weight":60.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-03-01","exercise":"prone leg curl","weight":65.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-03-01","exercise":"rear delt","weight":50.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-03-01","exercise":"pec fly","weight":72.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-03-01","exercise":"back extension","weight":130.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-03-01","exercise":"dependent curl","weight":12.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-02-28","exercise":"bicep curl","weight":32.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-02-28","exercise":"rotary torso","weight":100.0,"muscle":"core","sets":null,"reps":null},{"date":"2025-02-28","exercise":"seated leg press","weight":180.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-02-25","exercise":"glute lift","weight":70.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-02-25","exercise":"tricep press","weight":120.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-02-25","exercise":"chest press","weight":70.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-02-25","exercise":"bar deadlift","weight":105.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-02-25","exercise":"bar squat","weight":105.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-02-23","exercise":"tricep dumbell","weight":25.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-02-23","exercise":"lat raise","weight":10.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-02-23","exercise":"hip ductor out","weight":100.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-02-23","exercise":"hip ductor in","weight":55.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-02-23","exercise":"rear delt","weight":45.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-02-23","exercise":"pec fly","weight":65.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-02-21","exercise":"back extension","weight":120.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-02-21","exercise":"lat pull down","weight":90.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-02-21","exercise":"tricep press","weight":120.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-02-21","exercise":"dependent curl","weight":12.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-02-21","exercise":"seated row","weight":80.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-02-21","exercise":"bicep curl","weight":32.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-02-14","exercise":"pec fly","weight":65.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-02-14","exercise":"rear delt","weight":45.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-02-14","exercise":"calf extension","weight":140.0,"muscle":"calf","sets":null,"reps":null},{"date":"2025-02-14","exercise":"glute lift","weight":70.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-02-12","exercise":"bicep curl","weight":30.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-02-12","exercise":"dependent curl","weight":12.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-02-12","exercise":"lat pull down","weight":85.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-02-12","exercise":"tricep press","weight":110.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-02-12","exercise":"chest press","weight":70.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-02-05","exercise":"calf extension","weight":120.0,"muscle":"calf","sets":null,"reps":null},{"date":"2025-02-05","exercise":"seated leg curl","weight":50.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-02-05","exercise":"seated leg press","weight":170.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-02-05","exercise":"leg extension","weight":60.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-02-05","exercise":"hip ductor out","weight":60.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-02-05","exercise":"hip ductor in","weight":50.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-02-05","exercise":"glute kick","weight":60.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-02-04","exercise":"chest press","weight":70.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-02-04","exercise":"pec fly","weight":65.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-02-04","exercise":"shoulder press","weight":45.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-02-04","exercise":"lat raise","weight":10.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-02-04","exercise":"tricep dip assist","weight":80.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-02-04","exercise":"rotary torso","weight":90.0,"muscle":"core","sets":null,"reps":null},{"date":"2025-01-29","exercise":"leg extension","weight":60.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-01-29","exercise":"calf extension","weight":100.0,"muscle":"calf","sets":null,"reps":null},{"date":"2025-01-29","exercise":"seated leg press","weight":160.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-01-29","exercise":"hip ductor in","weight":45.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-01-29","exercise":"hip ductor out","weight":100.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-01-29","exercise":"glute kick","weight":55.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-01-29","exercise":"prone leg curl","weight":60.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-01-28","exercise":"chest press","weight":65.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-01-28","exercise":"pec fly","weight":65.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-01-28","exercise":"rear delt","weight":45.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-01-28","exercise":"tricep press","weight":100.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-01-25","exercise":"bicep curl","weight":30.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-01-25","exercise":"dependent curl","weight":15.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-01-25","exercise":"seated row","weight":75.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-01-25","exercise":"back extension","weight":110.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-01-25","exercise":"rotary torso","weight":85.0,"muscle":"core","sets":null,"reps":null},{"date":"2025-01-25","exercise":"lat raise","weight":10.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-01-25","exercise":"shoulder press","weight":45.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-01-23","exercise":"bar deadlift","weight":115.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-01-23","exercise":"bar squat","weight":115.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-01-23","exercise":"seated leg curl","weight":47.5,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-01-23","exercise":"hip ductor in","weight":40.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-01-23","exercise":"hip ductor out","weight":95.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-01-21","exercise":"tricep press","weight":100.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-01-21","exercise":"dependent curl","weight":15.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-01-21","exercise":"chest press","weight":62.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-01-21","exercise":"tricep extension","weight":42.5,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-01-21","exercise":"rotary torso","weight":70.0,"muscle":"core","sets":null,"reps":null},{"date":"2025-01-20","exercise":"rear delt","weight":42.5,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-01-20","exercise":"pec fly","weight":62.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-01-20","exercise":"seated leg curl","weight":45.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-01-20","exercise":"leg extension","weight":60.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-01-20","exercise":"prone leg curl","weight":55.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-01-20","exercise":"seated leg press","weight":160.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-01-18","exercise":"shoulder press","weight":40.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-01-18","exercise":"seated row","weight":70.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-01-18","exercise":"lat pull down","weight":85.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-01-18","exercise":"bicep curl","weight":30.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-01-18","exercise":"lat raise","weight":10.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-01-18","exercise":"dependent curl","weight":15.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-01-15","exercise":"bar deadlift","weight":105.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-01-15","exercise":"bar squat","weight":105.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-01-15","exercise":"glute lift","weight":70.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-01-15","exercise":"prone leg curl","weight":50.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-01-14","exercise":"seated row","weight":65.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-01-14","exercise":"shoulder press","weight":35.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-01-14","exercise":"chest press","weight":62.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-01-14","exercise":"pec fly","weight":62.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-01-14","exercise":"tricep press","weight":95.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-01-14","exercise":"lat pull down","weight":85.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-01-11","exercise":"pec fly","weight":65.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-01-11","exercise":"bicep curl","weight":35.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-01-11","exercise":"chest press","weight":60.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-01-11","exercise":"seated row","weight":67.5,"muscle":"back","sets":null,"reps":null},{"date":"2025-01-11","exercise":"tricep dip assist","weight":75.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-01-11","exercise":"back extension","weight":100.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-01-09","exercise":"back extension","weight":100.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-01-09","exercise":"leg extension","weight":50.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-01-09","exercise":"seated leg press","weight":150.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-01-09","exercise":"hip ductor out","weight":80.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-01-09","exercise":"hip ductor in","weight":35.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-01-09","exercise":"dependent curl","weight":17.5,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-01-09","exercise":"seated leg curl","weight":40.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-01-07","exercise":"bar squat","weight":100.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-01-07","exercise":"bar deadlift","weight":100.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-01-07","exercise":"lat raise","weight":8.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-01-07","exercise":"chest press","weight":60.0,"muscle":"chest","sets":null,"reps":null},{"date":"2025-01-07","exercise":"tricep press","weight":95.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-01-07","exercise":"shoulder press","weight":35.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-01-04","exercise":"pec fly","weight":62.5,"muscle":"chest","sets":null,"reps":null},{"date":"2025-01-04","exercise":"tricep dip assist","weight":75.0,"muscle":"tricep","sets":null,"reps":null},{"date":"2025-01-04","exercise":"prone leg curl","weight":50.0,"muscle":"hamstrings","sets":null,"reps":null},{"date":"2025-01-04","exercise":"seated leg press","weight":150.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-01-04","exercise":"bicep curl","weight":40.0,"muscle":"bicep","sets":null,"reps":null},{"date":"2025-01-04","exercise":"hip ductor out","weight":70.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-01-04","exercise":"hip ductor in","weight":35.0,"muscle":"hips","sets":null,"reps":null},{"date":"2025-01-04","exercise":"shoulder press","weight":35.0,"muscle":"shoulder","sets":null,"reps":null},{"date":"2025-01-04","exercise":"bar deadlift","weight":95.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-01-02","exercise":"bar squat","weight":105.0,"muscle":"quad","sets":null,"reps":null},{"date":"2025-01-02","exercise":"bar deadlift","weight":95.0,"muscle":"glutes","sets":null,"reps":null},{"date":"2025-01-02","exercise":"lat pull down","weight":85.0,"muscle":"lats","sets":null,"reps":null},{"date":"2025-01-02","exercise":"seated row","weight":65.0,"muscle":"back","sets":null,"reps":null},{"date":"2025-01-02","exercise":"pec fly","weight":62.5,"muscle":"chest","sets":null,"reps":null}];
+
+// ── STORAGE ────────────────────────────────────────────────────────────────
+function loadWorkouts() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('gymlog_v2') || 'null');
+    if (stored) return stored;
+    // First run: seed with historical data
+    localStorage.setItem('gymlog_v2', JSON.stringify(HISTORICAL_DATA));
+    localStorage.setItem('gymlog_seeded', '1');
+    return HISTORICAL_DATA;
+  } catch(e) { return HISTORICAL_DATA; }
+}
+function saveWorkoutsLocal(data) {
+  localStorage.setItem('gymlog_v2', JSON.stringify(data));
+}
+function getSheetUrl() { return localStorage.getItem('gymlog_sheet_url') || ''; }
+function saveSheetUrl() {
+  const url = document.getElementById('sheets-url').value.trim();
+  localStorage.setItem('gymlog_sheet_url', url);
+}
+
+// ── GOOGLE SHEETS SYNC ─────────────────────────────────────────────────────
+async function syncToSheets(rows) {
+  const url = getSheetUrl();
+  if (!url) return;
+  try {
+    await fetch(url, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'append', rows })
+    });
+  } catch(e) { console.warn('Sync failed', e); }
+}
+
+async function testConnection() {
+  const url = getSheetUrl();
+  const statusEl = document.getElementById('sync-status');
+  if (!url) { statusEl.innerHTML = '<span class="sync-status sync-err">No URL entered</span>'; return; }
+  statusEl.innerHTML = '<span class="sync-status sync-pending">Testing...</span>';
+  try {
+    await fetch(url + '?action=ping', { mode: 'no-cors' });
+    statusEl.innerHTML = '<span class="sync-status sync-ok">✓ Connected — URL looks good</span>';
+    toast('Connection OK!');
+  } catch(e) {
+    statusEl.innerHTML = '<span class="sync-status sync-err">Could not reach URL</span>';
+  }
+}
+
+async function syncAll() {
+  const url = getSheetUrl();
+  if (!url) { toast('Add a Sheets URL first'); return; }
+  toast('Syncing all data...');
+  const workouts = loadWorkouts();
+  await syncToSheets(workouts);
+  toast('Sync complete!');
+}
+
+// ── APPS SCRIPT CODE ───────────────────────────────────────────────────────
+const APPS_SCRIPT = `function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    
+    // Add header if empty
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(['date','exercise','weight','sets','reps','muscle']);
+    }
+    
+    if (data.action === 'append' && data.rows) {
+      data.rows.forEach(function(row) {
+        sheet.appendRow([
+          row.date, row.exercise, row.weight || '',
+          row.sets || '', row.reps || '', row.muscle
+        ]);
+      });
+    }
+    
+    return ContentService
+      .createTextOutput(JSON.stringify({status:'ok'}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({status:'error',message:err.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet(e) {
+  return ContentService
+    .createTextOutput(JSON.stringify({status:'ok',message:'GymLog connected'}))
+    .setMimeType(ContentService.MimeType.JSON);
+}`;
+
+// ── UTILS ──────────────────────────────────────────────────────────────────
+function today() { return new Date().toISOString().slice(0,10); }
+function daysSince(d) { return Math.round((new Date(today()) - new Date(d+'T12:00:00')) / 86400000); }
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+function fmt(d) { return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+
+// ── MUSCLE STATUS ──────────────────────────────────────────────────────────
+function getMuscleDays() {
+  const workouts = loadWorkouts();
+  const last = {};
+  workouts.forEach(w => { if (!last[w.muscle] || w.date > last[w.muscle]) last[w.muscle] = w.date; });
+  return last;
+}
+
+function renderMuscleGrid() {
+  const last = getMuscleDays();
+  const grid = document.getElementById('muscle-grid');
+  const sorted = [...MUSCLES].sort((a,b) => {
+    const da = last[a] ? daysSince(last[a]) : 999;
+    const db = last[b] ? daysSince(last[b]) : 999;
+    return db - da;
+  });
+  grid.innerHTML = sorted.map(m => {
+    const days = last[m] ? daysSince(last[m]) : null;
+    const dotC = days===null||days>5 ? 'dot-red' : days<=2 ? 'dot-green' : 'dot-orange';
+    const dC   = days===null||days>5 ? 'days-red' : days<=2 ? 'days-green' : 'days-orange';
+    return `<div class="muscle-card">
+      <div style="display:flex;align-items:center"><div class="dot ${dotC}"></div><div class="name">${m}</div></div>
+      <div class="days ${dC}">${days!==null?days:'—'}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── LOG PAGE ───────────────────────────────────────────────────────────────
+let currentEntries = [];
+
+function getLastWeight(exercise) {
+  const workouts = loadWorkouts();
+  const recent = workouts.filter(w => w.exercise === exercise && w.weight).sort((a,b) => b.date.localeCompare(a.date));
+  return recent.length ? recent[0] : null;
+}
+
+function populateExPicker(id) {
+  const sel = document.getElementById(id);
+  const existing = id === 'ex-picker' ? currentEntries.map(e=>e.exercise) : [];
+  sel.innerHTML = '<option value="">— Select exercise —</option>';
+  Object.keys(MACHINES).sort().forEach(n => {
+    if (!existing.includes(n)) sel.innerHTML += `<option value="${n}">${n}</option>`;
+  });
+}
+
+function addExercise() {
+  const sel = document.getElementById('ex-picker');
+  const name = sel.value; if (!name) return;
+  const muscle = MACHINES[name] || 'other';
+  const last = getLastWeight(name);
+  currentEntries.push({ exercise: name, muscle, sets: [{weight: last ? last.weight : '', reps: ''}] });
+  renderExerciseList();
+  populateExPicker('ex-picker');
+  sel.value = '';
+}
+
+function addSet(i) {
+  const lastSet = currentEntries[i].sets[currentEntries[i].sets.length - 1];
+  currentEntries[i].sets.push({ weight: lastSet.weight, reps: lastSet.reps });
+  renderExerciseList();
+}
+
+function removeSet(i, si) {
+  if (currentEntries[i].sets.length <= 1) return;
+  currentEntries[i].sets.splice(si, 1);
+  renderExerciseList();
+}
+
+function removeExercise(i) {
+  currentEntries.splice(i, 1);
+  renderExerciseList();
+  populateExPicker('ex-picker');
+}
+
+function renderExerciseList() {
+  const list = document.getElementById('exercise-list');
+  if (!currentEntries.length) { list.innerHTML = '<div class="empty">Add exercises above</div>'; return; }
+  list.innerHTML = currentEntries.map((e,i) => {
+    const last = getLastWeight(e.exercise);
+    const lastLabel = last ? `Last: ${last.weight}lbs on ${fmt(last.date)}` : 'No history';
+    return `<div class="exercise-entry">
+      <div class="ex-header">
+        <div>
+          <div class="ex-name">${e.exercise}</div>
+          <div style="margin-top:3px"><span class="ex-muscle">${e.muscle}</span></div>
+          <div class="ex-last">${lastLabel}</div>
+        </div>
+        <button onclick="removeExercise(${i})" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px">✕</button>
+      </div>
+      <div class="sets-area">
+        <div style="display:flex;gap:8px;margin-bottom:4px;padding:0 36px">
+          <div style="flex:1;text-align:center;font-size:11px;color:var(--muted)">Weight (lbs)</div>
+          <div style="flex:1;text-align:center;font-size:11px;color:var(--muted)">Reps</div>
+          <div style="width:24px"></div>
+        </div>
+        ${e.sets.map((s,si) => `
+          <div class="set-row">
+            <div class="set-num">S${si+1}</div>
+            <input type="number" inputmode="decimal" placeholder="0" value="${s.weight}" onchange="currentEntries[${i}].sets[${si}].weight=this.value">
+            <input type="number" inputmode="numeric" placeholder="10" value="${s.reps}" onchange="currentEntries[${i}].sets[${si}].reps=this.value">
+            <button onclick="removeSet(${i},${si})" style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px;width:24px">−</button>
+          </div>`).join('')}
+        <div class="set-actions">
+          <button onclick="addSet(${i})">+ Add Set</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function saveWorkout() {
+  if (!currentEntries.length) { toast('Add at least one exercise'); return; }
+  const workouts = loadWorkouts();
+  const d = today();
+  const newRows = [];
+  currentEntries.forEach(e => {
+    e.sets.forEach(s => {
+      const row = { date: d, exercise: e.exercise, weight: parseFloat(s.weight)||null, sets: 1, reps: parseInt(s.reps)||null, muscle: e.muscle };
+      workouts.push(row);
+      newRows.push(row);
+    });
+  });
+  saveWorkoutsLocal(workouts);
+  syncToSheets(newRows);
+  currentEntries = [];
+  renderExerciseList();
+  populateExPicker('ex-picker');
+  renderMuscleGrid();
+  toast('Workout saved!');
+  showPage('plan');
+}
+
+// ── HISTORY ────────────────────────────────────────────────────────────────
+let historyFilter = 'all';
+
+function renderHistory() {
+  const workouts = loadWorkouts();
+  const frow = document.getElementById('muscle-filters');
+  frow.innerHTML = `<div class="filter-chip ${historyFilter==='all'?'active':''}" onclick="setHistFilter('all')">All</div>`;
+  MUSCLES.forEach(m => frow.innerHTML += `<div class="filter-chip ${historyFilter===m?'active':''}" onclick="setHistFilter('${m}')">${m}</div>`);
+
+  const filtered = historyFilter==='all' ? workouts : workouts.filter(w=>w.muscle===historyFilter);
+  const byDate = {};
+  filtered.forEach(w => { if (!byDate[w.date]) byDate[w.date]=[]; byDate[w.date].push(w); });
+  const dates = Object.keys(byDate).sort((a,b)=>b.localeCompare(a));
+
+  const pbs = {};
+  workouts.forEach(w => { if (w.weight && (!pbs[w.exercise]||w.weight>pbs[w.exercise])) pbs[w.exercise]=w.weight; });
+
+  const list = document.getElementById('history-list');
+  if (!dates.length) { list.innerHTML = '<div class="empty">No entries yet</div>'; return; }
+  list.innerHTML = dates.map(d => `
+    <div class="history-group">
+      <div class="group-label">${fmt(d)}</div>
+      ${byDate[d].map(w=>`
+        <div class="history-row">
+          <div><div class="ex">${w.exercise}</div><div class="muscle-tag">${w.muscle}${w.sets&&w.reps?` · ${w.sets}×${w.reps}`:w.reps?` · ${w.reps} reps`:''}</div></div>
+          <div style="text-align:right">
+            ${w.weight?`<span class="weight">${w.weight}lbs${w.weight===pbs[w.exercise]?'<span class="pb-badge">PB</span>':''}</span>`:'<span style="color:var(--muted);font-size:13px">bodyweight</span>'}
+          </div>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+function setHistFilter(f) { historyFilter=f; renderHistory(); }
+
+// ── PROGRESS ───────────────────────────────────────────────────────────────
+let progressChart = null;
+
+function populateProgressPicker() {
+  const workouts = loadWorkouts();
+  const exercises = [...new Set(workouts.map(w=>w.exercise))].sort();
+  const sel = document.getElementById('progress-ex-picker');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— Select exercise —</option>';
+  exercises.forEach(e => sel.innerHTML += `<option value="${e}" ${e===current?'selected':''}>${e}</option>`);
+}
+
+function renderProgress() {
+  const ex = document.getElementById('progress-ex-picker').value;
+  const statsDiv = document.getElementById('progress-stats');
+  const chartWrap = document.getElementById('chart-wrap');
+  if (!ex) { statsDiv.innerHTML=''; chartWrap.style.display='none'; return; }
+
+  const workouts = loadWorkouts().filter(w=>w.exercise===ex&&w.weight).sort((a,b)=>a.date.localeCompare(b.date));
+  if (!workouts.length) { statsDiv.innerHTML='<div class="empty">No weight data for this exercise</div>'; chartWrap.style.display='none'; return; }
+
+  const weights = workouts.map(w=>w.weight);
+  const pb = Math.max(...weights);
+  const latest = weights[weights.length-1];
+  const gain = latest - weights[0];
+
+  statsDiv.innerHTML = `<div class="stat-row">
+    <div class="stat-box"><div class="val">${pb}lbs</div><div class="lbl">Personal Best</div></div>
+    <div class="stat-box"><div class="val">${latest}lbs</div><div class="lbl">Latest</div></div>
+    <div class="stat-box"><div class="val" style="color:${gain>=0?'var(--green)':'var(--red)'}">${gain>=0?'+':''}${gain.toFixed(1)}lbs</div><div class="lbl">Total Gain</div></div>
+  </div>`;
+
+  chartWrap.style.display='block';
+  document.getElementById('chart-title').textContent = ex.toUpperCase();
+
+  // Dedupe by date — take max weight per day
+  const byDate = {};
+  workouts.forEach(w => { if (!byDate[w.date]||w.weight>byDate[w.date]) byDate[w.date]=w.weight; });
+  const labels = Object.keys(byDate).map(d=>fmt(d));
+  const data = Object.values(byDate);
+
+  if (progressChart) progressChart.destroy();
+  const ctx = document.getElementById('progress-chart').getContext('2d');
+  progressChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [{ data, borderColor:'#e8ff47', backgroundColor:'rgba(232,255,71,0.08)', pointBackgroundColor:'#e8ff47', pointRadius:4, tension:0.3, fill:true }] },
+    options: { responsive:true, plugins:{legend:{display:false}}, scales: {
+      x:{ticks:{color:'#888',font:{family:'DM Sans',size:10},maxTicksLimit:6},grid:{color:'#2e2e31'}},
+      y:{ticks:{color:'#888',font:{family:'DM Sans',size:11},callback:v=>v+'lbs'},grid:{color:'#2e2e31'}}
+    }}
+  });
+}
+
+// ── SETTINGS ───────────────────────────────────────────────────────────────
+function copyScript() {
+  navigator.clipboard.writeText(APPS_SCRIPT).then(() => toast('Code copied!')).catch(() => {
+    document.getElementById('apps-script-code').select();
+    document.execCommand('copy');
+    toast('Code copied!');
+  });
+}
+
+function exportCSV() {
+  const workouts = loadWorkouts();
+  const rows = [['date','exercise','weight','sets','reps','muscle']];
+  workouts.forEach(w => rows.push([w.date, w.exercise, w.weight||'', w.sets||'', w.reps||'', w.muscle]));
+  const csv = rows.map(r=>r.join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'gymlog_export.csv';
+  a.click();
+  toast('CSV exported!');
+}
+
+// ── NAVIGATION ─────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  if (name==='plan') renderMuscleGrid();
+  if (name==='log') { populateExPicker('ex-picker'); renderExerciseList(); }
+  if (name==='history') renderHistory();
+  if (name==='progress') { populateProgressPicker(); renderProgress(); }
+  if (name==='settings') {
+    document.getElementById('sheets-url').value = getSheetUrl();
+    document.getElementById('apps-script-code').value = APPS_SCRIPT;
+  }
+}
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+document.getElementById('log-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+renderMuscleGrid();
+</script>
+</body>
+</html>
