@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="GymLog">
-<title>GymLog</title>
+<meta name="apple-mobile-web-app-title" content="Iron Diary">
+<title>Iron Diary</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -250,12 +250,26 @@ async function syncToSheets(rows) {
   const url = getSheetUrl();
   if (!url) return;
   try {
-    await fetch(url, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'append', rows })
-    });
+    // Google Apps Script requires following redirects — use a hidden iframe form POST
+    const iframe = document.createElement('iframe');
+    iframe.name = 'gs_sink';
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    form.target = 'gs_sink';
+
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'payload';
+    input.value = JSON.stringify({ action: 'append', rows });
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+
+    setTimeout(() => { iframe.remove(); form.remove(); }, 5000);
   } catch(e) { console.warn('Sync failed', e); }
 }
 
@@ -285,7 +299,11 @@ async function syncAll() {
 // ── APPS SCRIPT CODE ───────────────────────────────────────────────────────
 const APPS_SCRIPT = `function doPost(e) {
   try {
-    var data = JSON.parse(e.postData.contents);
+    // Accepts both JSON body and form payload parameter
+    var raw = (e.postData && e.postData.contents) ? e.postData.contents
+            : (e.parameter && e.parameter.payload) ? e.parameter.payload
+            : '{}';
+    var data = JSON.parse(raw);
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
     
     // Add header if empty
@@ -314,12 +332,14 @@ const APPS_SCRIPT = `function doPost(e) {
 
 function doGet(e) {
   return ContentService
-    .createTextOutput(JSON.stringify({status:'ok',message:'GymLog connected'}))
+    .createTextOutput(JSON.stringify({status:'ok',message:'Iron Diary connected'}))
     .setMimeType(ContentService.MimeType.JSON);
 }`;
 
 // ── UTILS ──────────────────────────────────────────────────────────────────
-function today() { return new Date().toISOString().slice(0,10); }
+function today() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+}
 function daysSince(d) { return Math.round((new Date(today()) - new Date(d+'T12:00:00')) / 86400000); }
 function toast(msg) {
   const t = document.getElementById('toast');
