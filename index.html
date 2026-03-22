@@ -356,12 +356,24 @@ function removeExercise(i) {
   populateExPicker('ex-picker');
 }
 
+const logCharts = {};
+
 function renderExerciseList() {
   const list = document.getElementById('exercise-list');
   if (!currentEntries.length) { list.innerHTML = '<div class="empty">Add exercises above</div>'; return; }
+
+  // Destroy old charts before re-rendering
+  Object.values(logCharts).forEach(c => c.destroy());
+  Object.keys(logCharts).forEach(k => delete logCharts[k]);
+
   list.innerHTML = currentEntries.map((e,i) => {
     const last = getLastWeight(e.exercise);
     const lastLabel = last ? `Last: ${last.weight}lbs on ${fmt(last.date)}` : 'No history';
+    const sixMoAgo = new Date(today()); sixMoAgo.setMonth(sixMoAgo.getMonth() - 6);
+    const cutoff6 = sixMoAgo.toISOString().slice(0, 10);
+    const workouts = loadWorkouts().filter(w => w.exercise === e.exercise && w.weight && w.date >= cutoff6).sort((a,b) => a.date.localeCompare(b.date));
+    const hasHistory = workouts.length > 1;
+
     return `<div class="exercise-entry">
       <div class="ex-header">
         <div>
@@ -371,6 +383,7 @@ function renderExerciseList() {
         </div>
         <button onclick="removeExercise(${i})" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px">✕</button>
       </div>
+      ${hasHistory ? `<div style="margin-bottom:10px"><canvas id="log-chart-${i}" height="80"></canvas></div>` : ''}
       <div class="sets-area">
         <div style="display:flex;gap:8px;margin-bottom:4px;padding:0 36px">
           <div style="flex:1;text-align:center;font-size:11px;color:var(--muted)">Weight (lbs)</div>
@@ -390,6 +403,37 @@ function renderExerciseList() {
       </div>
     </div>`;
   }).join('');
+
+  // Draw mini charts after DOM is updated
+  currentEntries.forEach((e, i) => {
+    const canvas = document.getElementById(`log-chart-${i}`);
+    if (!canvas) return;
+    const sixMonthsAgo = new Date(today());
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const cutoff = sixMonthsAgo.toISOString().slice(0, 10);
+    const workouts = loadWorkouts()
+      .filter(w => w.exercise === e.exercise && w.weight && w.date >= cutoff)
+      .sort((a,b) => a.date.localeCompare(b.date));
+    // Dedupe by date — take max weight per day
+    const byDate = {};
+    workouts.forEach(w => { if (!byDate[w.date] || w.weight > byDate[w.date]) byDate[w.date] = w.weight; });
+    const labels = Object.keys(byDate).map(d => fmt(d));
+    const data = Object.values(byDate);
+    const pb = Math.max(...data);
+
+    logCharts[i] = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: { labels, datasets: [{ data, borderColor: '#e8ff47', backgroundColor: 'rgba(232,255,71,0.07)', pointBackgroundColor: data.map(v => v === pb ? '#e8ff47' : 'rgba(232,255,71,0.4)'), pointRadius: data.map(v => v === pb ? 5 : 3), tension: 0.3, fill: true }] },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.parsed.y + 'lbs' + (ctx.parsed.y === pb ? ' 🏆' : '') } } },
+        scales: {
+          x: { ticks: { color: '#666', font: { size: 9 }, maxTicksLimit: 5 }, grid: { display: false } },
+          y: { ticks: { color: '#666', font: { size: 9 }, callback: v => v + 'lbs' }, grid: { color: '#2e2e31' } }
+        }
+      }
+    });
+  });
 }
 
 async function saveWorkout() {
@@ -398,11 +442,23 @@ async function saveWorkout() {
   const d = today();
   const newRows = [];
   currentEntries.forEach(e => {
-    e.sets.forEach(s => {
-      const row = { date: d, exercise: e.exercise, weight: parseFloat(s.weight)||null, sets: 1, reps: parseInt(s.reps)||null, muscle: e.muscle };
-      workouts.push(row);
-      newRows.push(row);
-    });
+    // One row per exercise — summarise all sets
+    const validSets = e.sets.filter(s => s.weight || s.reps);
+    const maxWeight = Math.max(...e.sets.map(s => parseFloat(s.weight) || 0)) || null;
+    const totalSets = e.sets.length;
+    const avgReps = e.sets.filter(s => s.reps).length > 0
+      ? Math.round(e.sets.reduce((sum, s) => sum + (parseInt(s.reps) || 0), 0) / e.sets.filter(s => s.reps).length)
+      : null;
+    const row = {
+      date: d,
+      exercise: e.exercise,
+      weight: maxWeight,
+      sets: totalSets,
+      reps: avgReps,
+      muscle: e.muscle
+    };
+    workouts.push(row);
+    newRows.push(row);
   });
   setCache(workouts);
   await saveNewRows(newRows);
