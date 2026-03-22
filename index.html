@@ -172,6 +172,8 @@
       <strong style="color:var(--text)" id="storage-count"></strong></p>
     </div>
     <button class="btn btn-outline" onclick="refreshData()" style="margin-bottom:8px">↻ Refresh from DynamoDB</button>
+    <button class="btn btn-muted btn-sm" onclick="testPost()" style="width:100%;margin-bottom:8px">🔧 Test POST to DynamoDB</button>
+    <div id="debug-out" style="font-size:11px;color:var(--muted);margin-top:8px;word-break:break-all;line-height:1.6"></div>
   </div>
 </div>
 
@@ -530,6 +532,23 @@ function showPage(name) {
     const count = loadWorkouts().length;
     const el = document.getElementById('storage-count');
     if (el) el.textContent = count + ' entries in DynamoDB';
+  }
+}
+
+async function testPost() {
+  const out = document.getElementById('debug-out');
+  out.textContent = 'Sending test POST...';
+  const testRow = [{ date: today(), exercise: 'test', weight: 1, muscle: 'core', sets: 1, reps: 1 }];
+  try {
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(testRow)
+    });
+    const text = await res.text();
+    out.textContent = `Status: ${res.status} | Response: ${text}`;
+  } catch(e) {
+    out.textContent = `ERROR: ${e.message}`;
   }
 }
 
